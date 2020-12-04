@@ -1,0 +1,16 @@
+version: '2.4'
+
+services:
+  streamlit:
+    build:
+      dockerfile: ./Dockerfile
+      context: ./
+    ports:
+      - '8501:8501'
+    volumes:
+      - '../data/notebook_produced_4/:/usr/src/app/data:delegated'
+      - '../saved_models/:/usr/src/app/saved_models:delegated'
+      - './project:/usr/src/app/project:delegated'
+    environment:
+      - USER_ID=1000
+      - GROUP_ID=1000
