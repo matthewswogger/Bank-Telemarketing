@@ -13,11 +13,11 @@ from sklearn.metrics import (make_scorer,
                              plot_confusion_matrix,
                              plot_roc_curve,
                              confusion_matrix)
-
+import matplotlib.pyplot as plt
 # import plotly.graph_objects as go
-import plotly.express as px
-import plotly.graph_objs as go
-import plotly.figure_factory as ff
+# import plotly.express as px
+# import plotly.graph_objs as go
+# import plotly.figure_factory as ff
 
 def _max_width_():
     max_width_str = f"max-width: 2000px;"
@@ -62,6 +62,15 @@ def computeLift(res, arr, r):
     return above_prob
 
 
+def computeProfitCurve(res, arr, r):
+    l = []
+    for i in arr:
+        exp, act = res.loc[res.probability >= i, ['expected_value', 'actual_value']].sum()
+        l.append([round(i, ndigits=r), exp, act])
+    above_prob = pd.DataFrame(l, columns=['above_probability', 'expected_profit', 'actual_profit'])
+    return above_prob
+
+
 @st.cache
 def getData():
     df = pd.read_csv('/usr/src/app/data/test.csv')
@@ -75,15 +84,17 @@ def loadModel():
 
 
 def main():
-    # _max_width_()
 
-    x = st.sidebar.slider('x')
-    st.write(x, 'squared is', x * x)
+    cost_per_call = st.sidebar.slider('Cost Per Call')
+    # st.write(x, 'squared is', x * x)
 
-    add_slider = st.sidebar.slider(
-        'Select a range of values',
-        0.0, 100.0, (25.0, 75.0)
+    profit_per_call = st.sidebar.slider(
+        'Profit per Yes',
+        # 0.0, 200.0, (25.0, 75.0)
+        0.0, 200.0,
     )
+
+    yes_profit = profit_per_call - cost_per_call
 
     st.title('Vendor Quality Tracking')
 
@@ -113,35 +124,53 @@ def main():
     round_prob = 1
     lift = computeLift(tpp, thresholds, round_prob)
 
+    thresholds = np.arange(0, 1, .1)
+    round_prob = 1
+    lift = computeLift(tpp, thresholds, round_prob)
 
-    # fig = px.histogram(data['Start station'], x ='Start station')
-    # st.plotly_chart(fig)
+    f, ax1 = plt.subplots(figsize=(20, 5))
 
-    # cm = confusion_matrix(y_holdout, clf.predict(X_holdout))
-    # cm = pd.DataFrame(cm, columns=['no', 'yes'], index=['no', 'yes'])
-    # cm.columns.name = 'Predicted'
-    # cm.index.name = 'True'
+    sns.barplot(data=lift, x='above_probability', y='lift', ax=ax1)
+    for row in lift.itertuples():
+        ax1.text(row.Index, row.lift, row.count, color='black', ha="center")
+    ax1.hlines(1, -1,10)
+    ax1.set_title('Holdout Set Lift')
 
-    # cm_norm = (cm.T/cm.T.sum()).T
+    st.pyplot(f)
 
-    # visitors_array = cm_norm.round(3).to_numpy()[::-1, :]
+    thresholds = np.arange(0, 1, .01)
+    round_prob = 2
+    lift = computeLift(tpp, thresholds, round_prob)
 
+    f, ax = plt.subplots(figsize=(20,5))
+    sns.lineplot(data=lift, x='above_probability', y='lift', ax=ax)
+    ax.set_title('Holdout Set Lift')
 
-    # Weekdays_list = ['no', 'yes']
-    # Hours_list = ['yes', 'no']
+    st.pyplot(f)
 
-    # layout_heatmap = go.Layout(
-    #     title=('Confusion Matrix'),
-    #     xaxis=dict(title='Predicted'),
-    #     yaxis=dict(title='True', dtick=1)
-    # )
+    cost_per_call = 5
+    yes_profit = 35 - cost_per_call
 
-    # ff_fig = ff.create_annotated_heatmap(x= Weekdays_list, y=Hours_list, z=visitors_array, showscale = True, colorscale='Blues')
-    # fig  = go.FigureWidget(ff_fig)
-    # fig.layout=layout_heatmap
-    # fig.layout.annotations = ff_fig.layout.annotations
-    # fig.data[0].colorbar = dict(title='', titleside = 'right')
-    # st.plotly_chart(fig)
+    func = lambda p: p*yes_profit - (1-p)*cost_per_call
+
+    tpp['expected_value'] = tpp.probability.apply(func)
+    tpp['actual_value'] = tpp.target.apply(func)
+
+    st.text('For Profit of > $0.00, target customers above this probablility:', tpp.loc[tpp.expected_value>0, 'probability'].min()*100)
+    st.text('For Profit of > $5.00, target customers above this probablility:', tpp.loc[tpp.expected_value>5, 'probability'].min()*100)
+    st.text('For Profit of > $10.00, target customers above this probablility:', tpp.loc[tpp.expected_value>10, 'probability'].min()*100)
+
+    thresholds = np.arange(0, 1, .01)
+    round_prob = 2
+    profit = computeProfitCurve(tpp, thresholds, round_prob)
+
+    f, ax1 = plt.subplots(figsize=(20,5))
+    sns.lineplot(data=profit, x='above_probability', y='expected_profit', ax=ax1)
+    sns.lineplot(data=profit, x='above_probability', y='actual_profit', ax=ax1)
+    ax1.legend(['expected_profit', 'actual_profit'])
+    ax1.set_title('Holdout Profit Curve')
+
+        st.pyplot(f)
 
 
 if __name__ == "__main__":
