@@ -14,6 +14,7 @@ from sklearn.metrics import (make_scorer,
                              plot_roc_curve,
                              confusion_matrix)
 import matplotlib.pyplot as plt
+import seaborn as sns
 # import plotly.graph_objects as go
 # import plotly.express as px
 # import plotly.graph_objs as go
@@ -148,17 +149,17 @@ def main():
 
     st.pyplot(f)
 
-    cost_per_call = 5
-    yes_profit = 35 - cost_per_call
+    # cost_per_call = 5
+    # yes_profit = 35 - cost_per_call
 
     func = lambda p: p*yes_profit - (1-p)*cost_per_call
 
     tpp['expected_value'] = tpp.probability.apply(func)
     tpp['actual_value'] = tpp.target.apply(func)
 
-    st.text('For Profit of > $0.00, target customers above this probablility:', tpp.loc[tpp.expected_value>0, 'probability'].min()*100)
-    st.text('For Profit of > $5.00, target customers above this probablility:', tpp.loc[tpp.expected_value>5, 'probability'].min()*100)
-    st.text('For Profit of > $10.00, target customers above this probablility:', tpp.loc[tpp.expected_value>10, 'probability'].min()*100)
+    # st.text('For Profit of > $0.00, target customers above this probablility:', tpp.loc[tpp.expected_value>0, 'probability'].min()*100)
+    # st.text('For Profit of > $5.00, target customers above this probablility:', tpp.loc[tpp.expected_value>5, 'probability'].min()*100)
+    # st.text('For Profit of > $10.00, target customers above this probablility:', tpp.loc[tpp.expected_value>10, 'probability'].min()*100)
 
     thresholds = np.arange(0, 1, .01)
     round_prob = 2
@@ -170,7 +171,7 @@ def main():
     ax1.legend(['expected_profit', 'actual_profit'])
     ax1.set_title('Holdout Profit Curve')
 
-        st.pyplot(f)
+    st.pyplot(f)
 
 
 if __name__ == "__main__":
